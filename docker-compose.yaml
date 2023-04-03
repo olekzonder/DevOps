@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  lesson1:
+    build:
+      ./1
+    ports:
+      - 8080:80
+  lesson2:
+    build:
+      ./2
+    restart: always
+  lesson3:
+    build:
+      ./3
+  lesson4:
+    build:
+      ./4
+  lesson5:
+    build:
+      context: ./5
+      args:
+        version: 20.04
+  lesson6:
+    build:
+      ./6
+  lesson7:
+    restart: always
+    build:
+      context: ./7
+      args:
+        host: 1.1.1.1
+        count: 10
+  lesson8:
+    build:
+      ./8/sibling
+    ports:
+      - 9090:9090
