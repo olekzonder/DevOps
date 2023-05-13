@@ -1,0 +1,95 @@
+version: '3.9'
+services:
+  pg-patroni-1:
+    hostname: pg-patroni
+    build:
+      context: .
+      dockerfile: Dockerfile-1
+    expose:
+      - 8008
+      - 5432
+    user: postgres
+    volumes:
+      - postgres-data-1:/var/lib/postgresql/data
+    environment:
+      PATRONI_NAME: pg-patroni-1
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data/node1
+      PATRONI_CONSUL_HOST: http://consul:8500
+      PATRONI_CONSUL_URL: http://consul:8500/v1/
+    networks:
+      baza:
+        ipv4_address: 10.5.0.5
+    restart: unless-stopped
+  
+  consul-1:
+    image: consul
+    hostname: consul
+    volumes:
+      - consul-data-1:/data
+      - ./consul-1.json:/consul/config/consul-1.json:ro
+    ports:
+      - "8500:8500"
+    networks:
+      baza:
+        ipv4_address: 10.5.0.6
+    restart: unless-stopped
+    command: agent -ui -bootstrap-expect 2 -retry-join consul-2 -server
+
+  pg-patroni-2:
+    hostname: pg-patroni
+    build:
+      context: .
+      dockerfile: Dockerfile-2
+    expose:
+      - 8008
+      - 5432
+    user: postgres
+    volumes:
+      - postgres-data-2:/var/lib/postgresql/data
+    environment:
+      PATRONI_NAME: pg-patroni-2
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data/node1
+      PATRONI_CONSUL_HOST: http://consul:8500
+      PATRONI_CONSUL_URL: http://consul:8500/v1/
+    networks:
+      baza:
+        ipv4_address: 10.5.0.7
+    restart: unless-stopped
+  
+  consul-2:
+    image: consul
+    hostname: consul
+    volumes:
+      - consul-data-2:/data
+      - ./consul-2.json:/consul/config/consul-2.json:ro
+    networks:
+      baza:
+        ipv4_address: 10.5.0.8
+    restart: unless-stopped
+    command: agent -ui -bootstrap-expect 2 -retry-join consul-1 -server
+
+  haproxy:
+    image: haproxy:alpine3.17
+    container_name: haproxy
+    ports:
+      - "7000:7000"
+      - "5000:5000"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      baza:
+        ipv4_address: 10.5.0.9
+
+volumes:
+  postgres-data-1:
+  consul-data-1:
+  postgres-data-2:
+  consul-data-2:
+
+networks:
+  baza:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
